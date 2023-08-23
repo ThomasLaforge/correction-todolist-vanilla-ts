@@ -1,48 +1,21 @@
+//  -------------------------------- DOM strucure --------------------------------
+
 const app = document.querySelector('#app') as HTMLDivElement
 
-// Get initial tasks from local storage
-let savedTasks: string[] = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks') as string) : []
-let savedStatus: boolean[] = localStorage.getItem('status') ? JSON.parse(localStorage.getItem('status') as string) : []
-
-// Create input and button for tje top bar
+// Create input and button for the top bar
 const input = document.createElement('input')
+input.classList.add('task-input')
 input.setAttribute('type', 'text')
 input.setAttribute('placeholder', 'Nouvelle tâche')
 
 const button = document.createElement('button')
-button.innerHTML = 'Ajouter'
+button.innerText = 'Ajouter'
 button.addEventListener('click', () => {
-  if (input.value === '') {
-    return
+  if (input.value != '') {  
+    addTask(input.value)
+    saveData();
+    input.value = ''
   }
-
-  savedTasks.push(input.value)
-  savedStatus.push(false)
-  localStorage.setItem('tasks', JSON.stringify(savedTasks))
-  localStorage.setItem('status', JSON.stringify(savedStatus)) 
-
-  const task = document.createElement('div')
-  task.classList.add('task')
-
-  const checkbox = document.createElement('input')
-  checkbox.setAttribute('type', 'checkbox')
-  checkbox.addEventListener('change', () => onCheckboxChange(checkbox, task))
-  task.appendChild(checkbox)
-  
-  const label = document.createElement('label')
-  label.innerText = input.value
-  task.appendChild(label)
-
-  const remove = document.createElement('button')
-  remove.innerText = 'Supprimer'
-  remove.addEventListener('click', () => {
-    list.removeChild(task)
-    
-  })
-  task.appendChild(remove)
-  
-  list.appendChild(task)
-  input.value = ''
 })
 
 // Add on top bar
@@ -58,57 +31,72 @@ list.classList.add('todo-list')
 app.appendChild(topBar)
 app.appendChild(list)
 
+//  ----------------------------- Add initial datas -----------------------------------
+
+// Get initial tasks from local storage
+let savedTasks: string[] = localStorage.getItem('tasks') ? JSON.parse(localStorage.getItem('tasks') as string) : []
+let savedStatus: boolean[] = localStorage.getItem('status') ? JSON.parse(localStorage.getItem('status') as string) : []
+
 // Add saved tasks to the list
 savedTasks.forEach((task, index) => {
-  const taskElement = document.createElement('div')
-  taskElement.classList.add('task')
-  
-  const checkbox = document.createElement('input') as HTMLInputElement
-  checkbox.setAttribute('type', 'checkbox')
-  checkbox.addEventListener('change', () => onCheckboxChange(checkbox, taskElement))
-  taskElement.appendChild(checkbox)
-  
-  const label = document.createElement('label')
-  label.innerText = task
-  taskElement.appendChild(label)
-  
-  const remove = document.createElement('button')
-  remove.innerText = 'Supprimer'
-  remove.addEventListener('click', () => onTaskRemove(taskElement, index))
-  
-  taskElement.appendChild(remove)
-  list.appendChild(taskElement)
-  
-  if (savedStatus[index]) {
-    checkbox.checked = true
-    taskElement.classList.add('done')
-  }
+  const taskStatus = savedStatus[index]
+  addTask(task, taskStatus)
 })
 
-// events on a task
-const onCheckboxChange = (checkbox: HTMLInputElement, taskElement: HTMLDivElement) => {
-    
+//  -------------------------------- Functions ----------------------------------------
+
+// Add a task to the list with a value and a status (checked or not) only if the value is not empty
+function addTask(value: string, status: boolean = false){
+  // Create a task parent element
+  const task = document.createElement('div')
+  task.classList.add('task')
+
+  // Create childs elements of the task
+  const label = document.createElement('label')
+  label.classList.add('task-label')
+  label.innerText = value
+  
+  const checkbox = document.createElement('input')
+  checkbox.setAttribute('type', 'checkbox')
+  checkbox.classList.add('task-checkbox')
+  checkbox.addEventListener('change', () => {
     if (checkbox.checked) {
-      taskElement.classList.add('done')
+      label.classList.add('done')
     } else {
-      taskElement.classList.remove('done')
+      label.classList.remove('done')
     }
+    saveData();
+  })
+  if(status === true){
+    checkbox.checked = status
+    label.classList.add('done')
+  }
 
-    savedStatus = savedStatus.map((status, index) => {
-      if (index === savedTasks.indexOf(taskElement.querySelector('label')?.innerText as string)) {
-        return checkbox.checked
-      }
-
-      return status
-    })
-    localStorage.setItem('status', JSON.stringify(savedStatus))
-
+  const removeButton = document.createElement('button')
+  removeButton.innerText = 'Supprimer'
+  removeButton.addEventListener('click', () => {
+    task.remove()
+    saveData();
+  })
+  
+  // Add elements to the task in this order : checkbox, label, removeButton
+  task.appendChild(checkbox)
+  task.appendChild(label)
+  task.appendChild(removeButton)
+  
+  // Add the task to the list
+  list.appendChild(task)
 }
 
-const onTaskRemove = (taskElement: HTMLDivElement, index: number) => {
-  list.removeChild(taskElement)
-  savedTasks.splice(index, 1)
-  savedStatus.splice(index, 1)
-  localStorage.setItem('tasks', JSON.stringify(savedTasks))
-  localStorage.setItem('status', JSON.stringify(savedStatus))
+// Save all datas (tasks and status) in local storage
+function saveData(){
+  const tasksDOM = document.querySelectorAll('.task-label')
+  const tasksElements = Array.from(tasksDOM) as HTMLParagraphElement[]
+  const tasks = tasksElements.map(task => task.innerText)
+  localStorage.setItem('tasks', JSON.stringify(tasks))
+
+  const tasksCheckboxDOM = document.querySelectorAll('.task-checkbox')
+  const tasksCheckboxElements = Array.from(tasksCheckboxDOM) as HTMLInputElement[]
+  const tasksCheckbox = tasksCheckboxElements.map(task => task.checked)
+  localStorage.setItem('status', JSON.stringify(tasksCheckbox))
 }
